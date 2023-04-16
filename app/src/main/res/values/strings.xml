@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">InDoorBLE</string>
+    <string name="scanBtn">Scan</string>
+    <string name="resultsView">Scan results</string>
+</resources>
