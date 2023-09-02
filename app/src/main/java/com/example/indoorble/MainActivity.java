@@ -16,22 +16,29 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_ENABLE_BLUETOOTH = 1;
-    BluetoothManager bluetoothManager;
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothLeScanner scanner;
     private ScanCallback scanCallback;
+    private String results;
+    BluetoothManager bluetoothManager;
     List<BluetoothDevice> bluetoothDeviceList = new ArrayList<>();
     List<Integer> rssiArray = new ArrayList<>();
 
@@ -45,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         Button scanBtn = findViewById(R.id.scanBtn);
+        Button saveBtn = findViewById(R.id.saveBtn);
         this.resultsView = findViewById(R.id.resultsView);
 
         this.bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -62,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
         // onClick scanBtn
         scanBtn.setOnClickListener(v -> checkSelfPermissionsAndStartScan());
+        saveBtn.setOnClickListener(v -> saveData());
     }
 
 
@@ -92,13 +101,13 @@ public class MainActivity extends AppCompatActivity {
             Log.d("BLE", "Requesting Permissions");
 
             // Request permissions
-                ActivityCompat.requestPermissions(this,
-                        new String[]{
-                                Manifest.permission.BLUETOOTH,
-                                Manifest.permission.BLUETOOTH_ADMIN,
-                                Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                        }, 123);
+            ActivityCompat.requestPermissions(this,
+                    new String[]{
+                            Manifest.permission.BLUETOOTH,
+                            Manifest.permission.BLUETOOTH_ADMIN,
+                            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                    }, 123);
             return;
         }
 
@@ -124,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("SimpleDateFormat")
     private void showResults(List<BluetoothDevice> bluetoothDeviceList, List<Integer> rssiArray) {
         this.resultsView.setMovementMethod(new ScrollingMovementMethod());
         Log.d("BLE", "showResults");
@@ -151,7 +161,13 @@ public class MainActivity extends AppCompatActivity {
                 sb.append("\n level (RSSI): ").append(rssiArray.get(i)).append(" dBm\n");
             }
         }
+
+        String timeStamp;
+        timeStamp = new SimpleDateFormat("yy.MM.dd HH:mm:ss").format(Calendar.getInstance().getTime());
+        sb.append("TIME: ").append(timeStamp).append("\n\n");
+
         this.resultsView.setText(sb.toString());
+        this.results = sb.toString();
 
         if (bluetoothDeviceList.size() > 99) {
             clearAndStopScanning();
@@ -187,6 +203,22 @@ public class MainActivity extends AppCompatActivity {
         this.scanner.stopScan(scanCallback);
         Log.e("BLE", "Scan stop");
     }
+
+    private void saveData() {
+        try {
+            File file = new File(Environment.getExternalStorageDirectory(), "Documents");
+            if (!file.exists()) {
+                file.mkdirs();
+            }
+            File gpxfile = new File(file, "results.txt");
+            FileWriter writer = new FileWriter(gpxfile, true);
+            writer.append(this.results);
+            writer.flush();
+            writer.close();
+            Toast.makeText(getBaseContext(), "File saved successfully!",
+                    Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
-
-
